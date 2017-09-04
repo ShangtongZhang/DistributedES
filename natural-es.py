@@ -77,6 +77,22 @@ def train(config):
 
     for w in workers: w.join()
 
+def test(id, config):
+    with open('data/%s-%s-best_solution.bin' % (config.tag, config.task), 'rb') as f:
+        solution = pickle.load(f)
+    with open('data/%s-%s-saved_shifter_%d.bin' % (config.tag, config.task, id), 'rb') as f:
+        saved_shifter = pickle.load(f)
+
+    evaluator = Evaluator(config)
+    evaluator.shifter.load_state_dict(saved_shifter)
+    evaluator.model.set_weight(solution)
+    rewards = []
+    repetitions = 10
+    for i in range(repetitions):
+        rewards.append(evaluator.single_run())
+    print rewards
+    print np.mean(rewards), np.std(rewards) / repetitions
+
 if __name__ == '__main__':
     config = PendulumConfig()
     # config = BipedalWalkerConfig()
@@ -86,3 +102,4 @@ if __name__ == '__main__':
     config.resume = False
 
     train(config)
+    # test(0, config)
