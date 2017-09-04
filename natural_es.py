@@ -7,8 +7,9 @@ import pickle
 from config import *
 import sys
 
+
 class Worker(mp.Process):
-    def __init__(self, id, param, task_q , result_q, stop, config):
+    def __init__(self, id, param, task_q, result_q, stop, config):
         mp.Process.__init__(self)
         self.id = id
         self.task_q = task_q
@@ -22,6 +23,7 @@ class Worker(mp.Process):
                 self.evaluator.shifter.load_state_dict(pickle.load(f))
 
     def run(self):
+        config = self.config
         np.random.seed()
         while not self.stop.value:
             if self.task_q.empty():
@@ -29,11 +31,12 @@ class Worker(mp.Process):
             self.task_q.get()
             disturbed_param = np.copy(self.param.numpy().flatten())
             epsilon = np.random.randn(len(disturbed_param))
-            disturbed_param += self.config.sigma * epsilon
+            disturbed_param += config.sigma * epsilon
             fitness = self.evaluator.eval(disturbed_param)
             with open('data/%s-%s-saved_shifter_%d.bin' % (config.tag, config.task, self.id), 'wb') as f:
                 pickle.dump(self.evaluator.shifter.state_dict(), f)
             self.result_q.put([epsilon, -fitness])
+
 
 def train(config):
     task_queue = SimpleQueue()
@@ -77,6 +80,7 @@ def train(config):
 
     for w in workers: w.join()
 
+
 def test(id, config):
     with open('data/%s-%s-best_solution.bin' % (config.tag, config.task), 'rb') as f:
         solution = pickle.load(f)
@@ -87,19 +91,20 @@ def test(id, config):
     evaluator.shifter.load_state_dict(saved_shifter)
     evaluator.model.set_weight(solution)
     rewards = []
-    repetitions = 10
+    repetitions = 5
     for i in range(repetitions):
         rewards.append(evaluator.single_run())
     print rewards
     print np.mean(rewards), np.std(rewards) / repetitions
 
+
 if __name__ == '__main__':
-    config = PendulumConfig()
-    # config = BipedalWalkerConfig()
+    # config = PendulumConfig()
+    config = BipedalWalkerConfig()
     config.sigma = 0.1
     config.learning_rate = 1e-2
     config.tag = 'NES'
     config.resume = False
 
-    train(config)
-    # test(0, config)
+    # train(config)
+    test(0, config)

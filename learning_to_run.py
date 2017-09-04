@@ -2,6 +2,7 @@ import opensim as osim
 from osim.env import RunEnv
 import numpy as np
 from model import *
+import natural_es
 
 class LTR:
     def __init__(self, difficulty=2, visualize=False):
@@ -30,9 +31,22 @@ class LearningToRunConfig:
         env = self.env_fn()
         self.action_dim = env.action_space.shape[0]
         self.state_dim = env.observation_space.shape[0]
-        model = SingleHiddenLayerNet(self.state_dim, self.action_dim)
+        self.model_fn = lambda: SingleHiddenLayerNet(self.state_dim, self.action_dim)
+        model = self.model_fn()
         self.action_clip = lambda a: np.clip(a, 0, 1)
         self.initial_weight = model.get_weight()
-        self.target = -50
+        self.target = 50
         self.popsize = 100
         self.num_workers = 15
+
+if __name__ == '__main__':
+    config = LearningToRunConfig()
+    config.sigma = 0.1
+    config.learning_rate = 1e-2
+    config.tag = 'NES'
+    config.resume = True
+    config.num_workers = 6
+    config.popsize = 30
+
+    natural_es.train(config)
+    # natural_es.test(0, config)
