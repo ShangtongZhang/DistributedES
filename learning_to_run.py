@@ -45,8 +45,8 @@ if __name__ == '__main__':
     config.learning_rate = 1e-2
     config.tag = 'NES'
     config.resume = True
-    config.num_workers = 6
-    config.popsize = 30
+    # config.num_workers = 6
+    # config.popsize = 30
 
-    # natural_es.train(config)
-    natural_es.test(config)
+    natural_es.train(config)
+    # natural_es.test(config)
