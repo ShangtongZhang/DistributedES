@@ -97,7 +97,7 @@ def test(config):
     evaluator = Evaluator(config, shifter)
     evaluator.model.set_weight(solution)
     rewards = []
-    repetitions = 5
+    repetitions = 20
     for i in range(repetitions):
         rewards.append(evaluator.single_run())
     print rewards

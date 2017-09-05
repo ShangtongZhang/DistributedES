@@ -2,3 +2,5 @@
 .idea
 *.log
 *.out
+data
+submit.py
