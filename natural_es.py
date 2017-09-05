@@ -5,11 +5,9 @@ import numpy as np
 from utils import *
 import pickle
 from config import *
-import sys
-
 
 class Worker(mp.Process):
-    def __init__(self, id, param, task_q, result_q, stop, config):
+    def __init__(self, id, param, shifter, task_q, result_q, stop, config):
         mp.Process.__init__(self)
         self.id = id
         self.task_q = task_q
@@ -17,10 +15,7 @@ class Worker(mp.Process):
         self.result_q = result_q
         self.stop = stop
         self.config = config
-        self.evaluator = Evaluator(config)
-        if config.resume:
-            with open('data/resume/%s-%s-saved_shifter_%d.bin' % (config.tag, config.task, self.id), 'rb') as f:
-                self.evaluator.shifter.load_state_dict(pickle.load(f))
+        self.evaluator = Evaluator(config, shifter)
 
     def run(self):
         config = self.config
@@ -33,22 +28,25 @@ class Worker(mp.Process):
             epsilon = np.random.randn(len(disturbed_param))
             disturbed_param += config.sigma * epsilon
             fitness = self.evaluator.eval(disturbed_param)
-            with open('data/%s-%s-saved_shifter_%d.bin' % (config.tag, config.task, self.id), 'wb') as f:
-                pickle.dump(self.evaluator.shifter.state_dict(), f)
             self.result_q.put([epsilon, -fitness])
-
 
 def train(config):
     task_queue = SimpleQueue()
     result_queue = SimpleQueue()
     stop = mp.Value('i', False)
+    stats = SharedStats(config.state_dim)
     if config.resume:
         with open('data/resume/%s-%s-best_solution.bin' % (config.tag, config.task), 'rb') as f:
             param = torch.FloatTensor(pickle.load(f))
+        with open('data/resume/%s-%s-saved_shifter.bin' % (config.tag, config.task), 'rb') as f:
+            stats.load_state_dict(pickle.load(f))
     else:
         param = torch.FloatTensor(torch.from_numpy(config.initial_weight))
     param.share_memory_()
-    workers = [Worker(id, param, task_queue, result_queue, stop, config) for id in range(config.num_workers)]
+    shifters = [StaticShifter(config.state_dim) for _ in range(config.num_workers)]
+    for shifter in shifters:
+        shifter.offline_stats.load(stats)
+    workers = [Worker(id, param, shifters[id], task_queue, result_queue, stop, config) for id in range(config.num_workers)]
     for w in workers: w.start()
 
     iteration = 0
@@ -73,6 +71,13 @@ def train(config):
         if r_mean > config.target:
             stop.value = True
             break
+        for shifter in shifters:
+            stats.merge(shifter.online_stats)
+            shifter.online_stats.zero()
+        for shifter in shifters:
+            shifter.offline_stats.load(stats)
+        with open('data/%s-%s-saved_shifter.bin' % (config.tag, config.task), 'wb') as f:
+            pickle.dump(stats.state_dict(), f)
         gradient = np.asarray(epsilons) * np.asarray(rewards).reshape((-1, 1))
         gradient = np.mean(gradient, 0) / config.sigma
         gradient = torch.FloatTensor(gradient)
@@ -81,14 +86,15 @@ def train(config):
     for w in workers: w.join()
 
 
-def test(id, config):
+def test(config):
     with open('data/%s-%s-best_solution.bin' % (config.tag, config.task), 'rb') as f:
         solution = pickle.load(f)
-    with open('data/%s-%s-saved_shifter_%d.bin' % (config.tag, config.task, id), 'rb') as f:
+    with open('data/%s-%s-saved_shifter.bin' % (config.tag, config.task), 'rb') as f:
         saved_shifter = pickle.load(f)
 
-    evaluator = Evaluator(config)
-    evaluator.shifter.load_state_dict(saved_shifter)
+    shifter = StaticShifter(config.state_dim)
+    shifter.offline_stats.load_state_dict(saved_shifter)
+    evaluator = Evaluator(config, shifter)
     evaluator.model.set_weight(solution)
     rewards = []
     repetitions = 5
@@ -104,7 +110,7 @@ if __name__ == '__main__':
     config.sigma = 0.1
     config.learning_rate = 1e-2
     config.tag = 'NES'
-    config.resume = False
+    config.resume = True
 
-    # train(config)
-    test(0, config)
+    train(config)
+    # test(config)
