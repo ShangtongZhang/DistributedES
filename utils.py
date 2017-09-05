@@ -88,7 +88,7 @@ class SharedStats:
     def load_state_dict(self, saved):
         self.m = torch.FloatTensor(saved['m'])
         self.v = torch.FloatTensor(saved['v'])
-        self.n = torch.FloatTensor([saved['n']])
+        self.n = torch.FloatTensor(saved['n'])
 
 class Evaluator:
     def __init__(self, config, shifter=None):

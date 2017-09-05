@@ -51,8 +51,6 @@ def train(config):
 
     iteration = 0
     while not stop.value:
-        with open('data/%s-%s-best_solution.bin' % (config.tag, config.task), 'wb') as f:
-            pickle.dump(param.numpy(), f)
         for i in range(config.popsize):
             task_queue.put(i)
         rewards = []
@@ -76,6 +74,8 @@ def train(config):
             shifter.online_stats.zero()
         for shifter in shifters:
             shifter.offline_stats.load(stats)
+        with open('data/%s-%s-best_solution.bin' % (config.tag, config.task), 'wb') as f:
+            pickle.dump(param.numpy(), f)
         with open('data/%s-%s-saved_shifter.bin' % (config.tag, config.task), 'wb') as f:
             pickle.dump(stats.state_dict(), f)
         gradient = np.asarray(epsilons) * np.asarray(rewards).reshape((-1, 1))
