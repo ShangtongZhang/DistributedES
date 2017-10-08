@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-class Shifter:
+class Normalizer:
     def __init__(self, filter_mean=True):
         self.m = 0
         self.v = 0
@@ -29,17 +29,27 @@ class Shifter:
             o_ = o / self.std
         return o_
 
-class StaticShifter:
+class StaticNormalizer:
     def __init__(self, o_size):
         self.offline_stats = SharedStats(o_size)
         self.online_stats = SharedStats(o_size)
 
     def __call__(self, o_):
-        o = torch.FloatTensor(o_)
+        if np.isscalar(o_):
+            o = torch.FloatTensor([o_])
+        else:
+            o = torch.FloatTensor(o_)
         self.online_stats.feed(o)
+        if self.offline_stats.n[0] == 0:
+            return o_
         std = (self.offline_stats.v + 1e-6) ** .5
         o = (o - self.offline_stats.m) / std
-        return o.numpy().reshape(o_.shape)
+        o = o.numpy()
+        if np.isscalar(o_):
+            o = np.asscalar(o)
+        else:
+            o = o.reshape(o_.shape)
+        return o
 
 class SharedStats:
     def __init__(self, o_size):
@@ -91,31 +101,33 @@ class SharedStats:
         self.n = torch.FloatTensor(saved['n'])
 
 class Evaluator:
-    def __init__(self, config, shifter=None):
+    def __init__(self, config, state_normalizer):
         self.model = config.model_fn()
         self.repetitions = config.repetitions
         self.env = config.env_fn()
-        if shifter is None:
-            self.shifter = Shifter()
-        else:
-            self.shifter = shifter
+        self.state_normalizer = state_normalizer
         self.config = config
 
     def eval(self, solution):
         self.model.set_weight(solution)
         rewards = []
+        steps = []
         for i in range(self.repetitions):
-            rewards.append(self.single_run())
-        return -np.mean(rewards)
+            reward, step = self.single_run()
+            rewards.append(reward)
+            steps.append(step)
+        return -np.mean(rewards), np.sum(steps)
 
     def single_run(self):
         state = self.env.reset()
         total_reward = 0
+        steps = 0
         while True:
-            state = self.shifter(state)
+            state = self.state_normalizer(state)
             action = self.model(np.stack([state])).data.numpy().flatten()
             action = self.config.action_clip(action)
             state, reward, done, info = self.env.step(action)
+            steps += 1
             total_reward += reward
             if done:
-                return total_reward
+                return total_reward, steps

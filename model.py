@@ -24,37 +24,18 @@ class BaseModel:
             offset += param_size
         assert offset == len(solution)
 
-class SingleHiddenLayerNet(nn.Module, BaseModel):
+class StandardFCNet(nn.Module, BaseModel):
     def __init__(self, state_dim, action_dim):
-        super(SingleHiddenLayerNet, self).__init__()
-        # hidden_size = 64
-        # self.fc2 = nn.Linear(hidden_size, hidden_size)
-        # self.fc3 = nn.Linear(hidden_size, action_dim)
-
-        hidden_size = 200
-        self.fc1 = nn.Linear(state_dim, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, action_dim)
-
-    def forward(self, x):
-        x = Variable(torch.FloatTensor(x))
-        x = F.relu(self.fc1(x))
-        # x = F.relu(self.fc2(x))
-        # x = self.fc3(x)
-        x = self.fc2(x)
-        return x
-
-class FCNet(nn.Module, BaseModel):
-    def __init__(self, state_dim, action_dim):
-        super(FCNet, self).__init__()
+        super(StandardFCNet, self).__init__()
         hidden_size = 64
+
         self.fc1 = nn.Linear(state_dim, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, action_dim)
 
     def forward(self, x):
         x = Variable(torch.FloatTensor(x))
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        x = F.tanh(self.fc1(x))
+        x = F.tanh(self.fc2(x))
         x = self.fc3(x)
         return x
-
