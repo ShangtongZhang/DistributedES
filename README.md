@@ -8,7 +8,8 @@ Included algorithms:
 # Dependency
 * PyTorch
 * [CMA](https://pypi.python.org/pypi/cma)
-* [Neat-Python](https://github.com/CodeReclaimers/neat-python)
+* [Neat-Python](https://github.com/CodeReclaimers/neat-python) [[commit](https://github.com/CodeReclaimers/neat-python/commit/15e910ce12f34497b32946e468205e08b019034d)]
+
 
 # References
 * [The CMA Evolution Strategy: A Tutorial](https://arxiv.org/abs/1604.00772)
