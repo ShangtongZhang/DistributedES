@@ -106,7 +106,7 @@ def test(config, solution, stats):
 if __name__ == '__main__':
     config = PendulumConfig()
     # config = BipedalWalkerConfig()
-    # config = ContinuousLunarLander()
+    # config = ContinuousLunarLanderConfig()
     config.sigma = 0.1
     config.learning_rate = 1e-2
     config.tag = 'NES'

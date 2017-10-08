@@ -33,7 +33,7 @@ class BipedalWalkerConfig:
         self.popsize = 30
         self.num_workers = 6
 
-class ContinuousLunarLander:
+class ContinuousLunarLanderConfig:
     def __init__(self):
         self.task = 'LunarLanderContinuous-v2'
         self.env_fn = lambda: gym.make(self.task)
