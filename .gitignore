@@ -4,3 +4,5 @@
 *.out
 data
 submit.py
+neat/
+log/
