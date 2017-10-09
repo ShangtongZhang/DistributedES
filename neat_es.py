@@ -161,32 +161,33 @@ class NEATAgent:
     def run(self):
         return self.evolve()
 
-def mulit_runs(config):
+def multi_runs(config):
     stats = []
     runs = 10
     for run in range(runs):
         gym.logger.info('Run %d' % (run))
         stats.append(NEATAgent(config).run())
-    with open('data/NEAT-stats-%s.bin' % (config.__class__.__name__), 'wb') as f:
-        pickle.dump(stats, f)
+        with open('data/NEAT-stats-%s.bin' % (config.task), 'wb') as f:
+            pickle.dump(stats, f)
 
 if __name__ == '__main__':
-    # config = PendulumConfig()
-    # config.action_clip = lambda a: 2 * a
+    config = PendulumConfig()
+    config.action_clip = lambda a: [2 * a[0]]
     # config = ContinuousLunarLanderConfig()
-    config = BipedalWalkerConfig()
+    # config = BipedalWalkerConfig()
 
     config.num_workers = 8
     config.popsize = 64
     # config.test_repetitions = 5
     config.reward_to_fitness = lambda r: r
     config.max_steps = int(1e8)
+    # config.max_steps = int(2e7)
 
-    fh = logging.FileHandler('log/%s.txt' % config.task)
+    fh = logging.FileHandler('log/NEAT-%s.txt' % config.task)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
     fh.setLevel(logging.DEBUG)
     gym.logger.addHandler(fh)
 
-    mulit_runs(config)
+    multi_runs(config)
     # NEATAgent(config).run()
