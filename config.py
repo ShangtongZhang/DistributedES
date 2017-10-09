@@ -13,7 +13,7 @@ class PendulumConfig:
         model = self.model_fn()
         self.action_clip = lambda a: np.clip(a, -2, 2)
         self.initial_weight = model.get_weight()
-        self.target = 0
+        self.target = 10000
         self.popsize = 30
         self.num_workers = 6
 
@@ -29,7 +29,7 @@ class BipedalWalkerConfig:
         model = self.model_fn()
         self.action_clip = lambda a: np.clip(a, -1, 1)
         self.initial_weight = model.get_weight()
-        self.target = 1000
+        self.target = 10000
         self.popsize = 30
         self.num_workers = 6
 
@@ -45,6 +45,6 @@ class ContinuousLunarLanderConfig:
         model = self.model_fn()
         self.action_clip = lambda a: np.clip(a, -1, 1)
         self.initial_weight = model.get_weight()
-        self.target = 300
+        self.target = 10000
         self.popsize = 30
         self.num_workers = 6

@@ -12,6 +12,7 @@ import torch.multiprocessing as mp
 from utils import *
 from config import *
 from neat.six_util import iteritems
+import logging
 
 class GenomeEvaluator:
     def __init__(self, config, neat_config, state_normalizer):
@@ -34,7 +35,8 @@ class GenomeEvaluator:
         steps = 0
         rewards = 0
         while True:
-            action = self.config.action_clip(net.activate(state))
+            action = net.activate(state)
+            action = self.config.action_clip(action)
             state, reward, done, _ = self.env.step(action)
             state = self.state_normalizer(state)
             rewards += reward
@@ -128,12 +130,24 @@ class NEATAgent:
         class CustomReporter(BaseReporter):
             def __init__(self, agent):
                 self.fitness = []
+                self.steps = []
+                self.timestamps = []
                 self.agent = agent
+                self.initial_time = time.time()
+
             def post_evaluate(self, config, population, species, best_genome):
+                elapsed_time = time.time() - self.initial_time
                 self.fitness.append(best_genome.fitness)
-                print 'total steps %d, best fitness %f' % (self.agent.total_steps, best_genome.fitness)
-                if best_genome.fitness > self.agent.config.target:
+                self.steps.append(self.agent.total_steps)
+                self.timestamps.append(elapsed_time)
+                gym.logger.info('total steps %d, best fitness %f, elapsed time %f' %
+                                (self.agent.total_steps, best_genome.fitness, elapsed_time))
+                # if best_genome.fitness > self.agent.config.target:
+                #     self.agent.stop.value = True
+                if self.agent.total_steps > self.agent.config.max_steps:
                     self.agent.stop.value = True
+                    self.stats = [self.fitness, self.steps, self.timestamps]
+                    best_genome.fitness = self.agent.config.target + 1
 
         pop = neat.Population(self.neat_config)
         # stats = neat.StatisticsReporter()
@@ -142,19 +156,37 @@ class NEATAgent:
         reporter = CustomReporter(self)
         pop.add_reporter(reporter)
         pop.run(self.evaluate)
+        return reporter.stats
 
     def run(self):
-        self.evolve()
+        return self.evolve()
+
+def mulit_runs(config):
+    stats = []
+    runs = 10
+    for run in range(runs):
+        gym.logger.info('Run %d' % (run))
+        stats.append(NEATAgent(config).run())
+    with open('data/NEAT-stats-%s.bin' % (config.__class__.__name__), 'wb') as f:
+        pickle.dump(stats, f)
 
 if __name__ == '__main__':
     # config = PendulumConfig()
     # config.action_clip = lambda a: 2 * a
-
     # config = ContinuousLunarLanderConfig()
-
     config = BipedalWalkerConfig()
 
-    config.popsize = 100
-    config.test_repetitions = 5
+    config.num_workers = 8
+    config.popsize = 64
+    # config.test_repetitions = 5
     config.reward_to_fitness = lambda r: r
-    NEATAgent(config).run()
+    config.max_steps = int(1e8)
+
+    fh = logging.FileHandler('log/%s.txt' % config.task)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    fh.setLevel(logging.DEBUG)
+    gym.logger.addHandler(fh)
+
+    mulit_runs(config)
+    # NEATAgent(config).run()
