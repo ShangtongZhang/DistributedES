@@ -142,7 +142,7 @@ class NEATAgent:
                                 (self.agent.total_steps, reward, best_genome.fitness, elapsed_time))
                 # if best_genome.fitness > self.agent.config.target:
                 #     self.agent.stop.value = True
-                if self.agent.max_steps and self.agent.total_steps > self.agent.config.max_steps:
+                if self.agent.config.max_steps and self.agent.total_steps > self.agent.config.max_steps:
                     self.agent.stop.value = True
                     self.stats = [self.fitness, self.steps, self.timestamps]
                     best_genome.fitness = self.agent.config.target + 1
