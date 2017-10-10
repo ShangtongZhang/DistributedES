@@ -180,7 +180,7 @@ if __name__ == '__main__':
     config.popsize = 64
     # config.test_repetitions = 5
     config.reward_to_fitness = lambda r: r
-    config.max_steps = int(1e8)
+    config.max_steps = int(5e8)
     # config.max_steps = int(2e7)
 
     fh = logging.FileHandler('log/NEAT-%s.txt' % config.task)

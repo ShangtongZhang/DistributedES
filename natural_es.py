@@ -128,19 +128,24 @@ def multi_runs(config):
     for run in range(runs):
         gym.logger.info('Run %d' % (run))
         stats.append(train(config))
-        with open('data/NES-stats-%s.bin' % (config.__class__.__name__), 'wb') as f:
+        with open('data/NES-stats-%s.bin' % (config.task), 'wb') as f:
             pickle.dump(stats, f)
 
 if __name__ == '__main__':
     # config = PendulumConfig()
+    # config.max_steps = int(1e8)
+
     # config = BipedalWalkerConfig()
+    # config.max_steps = int(1e8)
+
     config = ContinuousLunarLanderConfig()
+    config.max_steps = int(2e7)
+
     config.sigma = 0.1
     config.learning_rate = 1e-2
     config.resume = False
     config.test_repetitions = 5
-    config.max_steps = int(1e11)
-    config.popsize = 30
+    config.popsize = 64
     config.num_workers = 8
 
     fh = logging.FileHandler('log/NES-%s.txt' % config.task)
@@ -149,4 +154,5 @@ if __name__ == '__main__':
     fh.setLevel(logging.DEBUG)
     gym.logger.addHandler(fh)
 
-    train(config)
+    # train(config)
+    multi_runs(config)
