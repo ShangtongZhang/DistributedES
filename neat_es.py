@@ -70,7 +70,7 @@ class NEATAgent:
     def __init__(self, config):
         self.config = config
         self.neat_config = self.load_neat_config()
-        self.neat_config.pop_size = config.popsize
+        self.neat_config.pop_size = config.pop_size
         self.task_q = mp.SimpleQueue()
         self.result_q = mp.SimpleQueue()
         self.total_steps = 0
@@ -113,10 +113,6 @@ class NEATAgent:
             normalizer.online_stats.zero()
         for normalizer in self.normalizers:
             normalizer.offline_stats.load(self.stats)
-        # best_fitness_ind = np.argmax([f for _, f in results])
-        # best_genome_ind = results[best_fitness_ind][0]
-        # best_genome = tasks[best_genome_ind]
-        # fitness, _ = self.test(best_genome)
         self.total_steps += steps
 
     def test(self, genome):
@@ -137,14 +133,16 @@ class NEATAgent:
 
             def post_evaluate(self, config, population, species, best_genome):
                 elapsed_time = time.time() - self.initial_time
-                self.fitness.append(best_genome.fitness)
                 self.steps.append(self.agent.total_steps)
                 self.timestamps.append(elapsed_time)
-                gym.logger.info('total steps %d, best fitness %f, elapsed time %f' %
-                                (self.agent.total_steps, best_genome.fitness, elapsed_time))
+                reward, _ = self.agent.test(best_genome)
+                self.fitness.append(reward)
+                # self.fitness.append(best_genome.fitness)
+                gym.logger.info('total steps %d, test %f, best %f, elapsed time %f' %
+                                (self.agent.total_steps, reward, best_genome.fitness, elapsed_time))
                 # if best_genome.fitness > self.agent.config.target:
                 #     self.agent.stop.value = True
-                if self.agent.total_steps > self.agent.config.max_steps:
+                if self.agent.max_steps and self.agent.total_steps > self.agent.config.max_steps:
                     self.agent.stop.value = True
                     self.stats = [self.fitness, self.steps, self.timestamps]
                     best_genome.fitness = self.agent.config.target + 1
@@ -161,7 +159,14 @@ class NEATAgent:
     def run(self):
         return self.evolve()
 
+
 def multi_runs(config):
+    fh = logging.FileHandler('log/NEAT-%s.txt' % config.task)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    fh.setLevel(logging.DEBUG)
+    gym.logger.addHandler(fh)
+
     stats = []
     runs = 10
     for run in range(runs):
@@ -170,24 +175,60 @@ def multi_runs(config):
         with open('data/NEAT-stats-%s.bin' % (config.task), 'wb') as f:
             pickle.dump(stats, f)
 
-if __name__ == '__main__':
+def all_tasks():
+    configs = []
+
     config = PendulumConfig()
     config.action_clip = lambda a: [2 * a[0]]
-    # config = ContinuousLunarLanderConfig()
+    config.max_steps = int(1e8)
+    configs.append(config)
+
+    config = BipedalWalkerConfig()
+    config.max_steps = int(1e8)
+    configs.append(config)
+
+    config = ContinuousLunarLanderConfig()
+    config.max_steps = int(2e7)
+    configs.append(config)
+
+    ps = []
+    for cf in configs:
+        cf.max_steps = int(1e10)
+        cf.num_workers = 8
+        cf.pop_size = 64
+        ps.append(mp.Process(target=multi_runs, args=(cf, )))
+
+    for p in ps: p.start()
+    for p in ps: p.join()
+
+if __name__ == '__main__':
+    # configs = []
+    #
+    # config = PendulumConfig()
+    # config.action_clip = lambda a: [2 * a[0]]
+    # config.max_steps = int(1e8)
+    # configs.append(config)
+    #
     # config = BipedalWalkerConfig()
-
-    config.num_workers = 8
-    config.popsize = 64
-    # config.test_repetitions = 5
-    config.reward_to_fitness = lambda r: r
-    config.max_steps = int(5e8)
+    # config.max_steps = int(1e8)
+    # configs.append(config)
+    #
+    # config = ContinuousLunarLanderConfig()
     # config.max_steps = int(2e7)
+    # configs.append(config)
+    #
+    # for config in configs:
+    #     config.max_steps = int(1e10)
+    #     config.num_workers = 8
+    #     config.pop_size = 64
 
-    fh = logging.FileHandler('log/NEAT-%s.txt' % config.task)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    fh.setFormatter(formatter)
-    fh.setLevel(logging.DEBUG)
-    gym.logger.addHandler(fh)
+    # config = configs[0]
+    # fh = logging.FileHandler('log/NEAT-%s.txt' % config.task)
+    # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # fh.setFormatter(formatter)
+    # fh.setLevel(logging.DEBUG)
+    # gym.logger.addHandler(fh)
 
-    multi_runs(config)
+    all_tasks()
+    # multi_runs(config)
     # NEATAgent(config).run()

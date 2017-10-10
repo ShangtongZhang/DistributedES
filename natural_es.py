@@ -58,18 +58,20 @@ def train(config):
     total_steps = 0
     iteration = 0
     while not stop.value:
-        if not total_steps:
-            test_mean, test_ste = test(config, param.numpy(), stats)
-            training_rewards.append(test_mean)
-            training_steps.append(total_steps)
-            training_timestamps.append(0)
-            gym.logger.info('total steps %d, %f(%f)' % (total_steps, test_mean, test_ste))
-        for i in range(config.popsize):
+        test_mean, test_ste = test(config, param.numpy(), stats)
+        elapsed_time = time.time() - initial_time
+        training_rewards.append(test_mean)
+        training_steps.append(total_steps)
+        training_timestamps.append(elapsed_time)
+        gym.logger.info('total steps %d, %f(%f), elapsed time %d' % 
+                        (total_steps, test_mean, test_ste, elapsed_time))
+        
+        for i in range(config.pop_size):
             task_queue.put(i)
         rewards = []
         epsilons = []
         steps = []
-        while len(rewards) < config.popsize:
+        while len(rewards) < config.pop_size:
             if result_queue.empty():
                 continue
             epsilon, fitness, step = result_queue.get()
@@ -78,20 +80,18 @@ def train(config):
             steps.append(step)
 
         total_steps += np.sum(steps)
-        elapsed_time = time.time() - initial_time
-        training_rewards.append(np.max(rewards))
-        training_steps.append(total_steps)
-        training_timestamps.append(elapsed_time)
-        gym.logger.info('max rewards %f, total steps %d, elapsed time %f' %
-                        (np.max(rewards), total_steps, elapsed_time))
-
+        # training_rewards.append(np.max(rewards))
+        # training_steps.append(total_steps)
+        # training_timestamps.append(elapsed_time)
+        # gym.logger.info('max rewards %f, total steps %d, elapsed time %f' %
+        #                 (np.max(rewards), total_steps, elapsed_time))
         r_mean = np.mean(rewards)
         r_std = np.std(rewards)
         rewards = (rewards - r_mean) / r_std
-        gym.logger.info('iteration %d, %f(%f)' % (iteration, r_mean, r_std / np.sqrt(config.popsize)))
+        gym.logger.info('iteration %d, %f(%f)' % (iteration, r_mean, r_std / np.sqrt(config.pop_size)))
         iteration += 1
         # if r_mean > config.target:
-        if total_steps > config.max_steps:
+        if config.max_steps and total_steps > config.max_steps:
             stop.value = True
             break
         for normalizer in normalizers:
@@ -122,7 +122,14 @@ def test(config, solution, stats):
         rewards.append(reward)
     return np.mean(rewards), np.std(rewards) / config.test_repetitions
 
+
 def multi_runs(config):
+    fh = logging.FileHandler('log/NES-%s.txt' % config.task)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    fh.setLevel(logging.DEBUG)
+    gym.logger.addHandler(fh)
+
     stats = []
     runs = 10
     for run in range(runs):
@@ -131,28 +138,62 @@ def multi_runs(config):
         with open('data/NES-stats-%s.bin' % (config.task), 'wb') as f:
             pickle.dump(stats, f)
 
-if __name__ == '__main__':
-    # config = PendulumConfig()
-    # config.max_steps = int(1e8)
+def all_tasks():
+    configs = []
 
-    # config = BipedalWalkerConfig()
-    # config.max_steps = int(1e8)
+    config = PendulumConfig()
+    config.max_steps = int(1e8)
+    configs.append(config)
+
+    config = BipedalWalkerConfig()
+    config.max_steps = int(1e8)
+    configs.append(config)
 
     config = ContinuousLunarLanderConfig()
     config.max_steps = int(2e7)
+    configs.append(config)
 
-    config.sigma = 0.1
-    config.learning_rate = 1e-2
-    config.resume = False
-    config.test_repetitions = 5
-    config.popsize = 64
-    config.num_workers = 8
+    ps = []
+    for cf in configs:
+        cf.max_steps = int(1e10)
+        cf.num_workers = 8
+        cf.pop_size = 64
+        cf.sigma = 0.1
+        cf.learning_rate = 1e-2
+        ps.append(mp.Process(target=multi_runs, args=(cf, )))
 
-    fh = logging.FileHandler('log/NES-%s.txt' % config.task)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    fh.setFormatter(formatter)
-    fh.setLevel(logging.DEBUG)
-    gym.logger.addHandler(fh)
+    for p in ps: p.start()
+    for p in ps: p.join()
 
+if __name__ == '__main__':
+    # configs = []
+    #
+    # config = PendulumConfig()
+    # config.max_steps = int(1e8)
+    # configs.append(config)
+    #
+    # config = BipedalWalkerConfig()
+    # config.max_steps = int(1e8)
+    # configs.append(config)
+    #
+    # config = ContinuousLunarLanderConfig()
+    # config.max_steps = int(2e7)
+    # configs.append(config)
+    #
+    # for config in configs:
+    #     config.max_steps = int(1e10)
+    #     config.num_workers = 8
+    #     config.pop_size = 64
+    #     config.sigma = 0.1
+    #     config.learning_rate = 1e-2
+    #
+    # config = configs[0]
+    # fh = logging.FileHandler('log/NES-%s.txt' % config.task)
+    # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # fh.setFormatter(formatter)
+    # fh.setLevel(logging.DEBUG)
+    # gym.logger.addHandler(fh)
+
+    all_tasks()
     # train(config)
-    multi_runs(config)
+    # multi_runs(config)
