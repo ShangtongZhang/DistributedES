@@ -180,20 +180,20 @@ def all_tasks():
 
     config = PendulumConfig()
     config.action_clip = lambda a: [2 * a[0]]
-    config.max_steps = int(1e8)
+    config.max_steps = int(4e7)
     configs.append(config)
 
     config = BipedalWalkerConfig()
-    config.max_steps = int(1e8)
+    config.max_steps = int(2e8)
     configs.append(config)
 
     config = ContinuousLunarLanderConfig()
-    config.max_steps = int(2e7)
+    config.max_steps = int(4e7)
     configs.append(config)
 
     ps = []
     for cf in configs:
-        cf.max_steps = int(1e10)
+        # cf.max_steps = int(1e10)
         cf.num_workers = 8
         cf.pop_size = 64
         ps.append(mp.Process(target=multi_runs, args=(cf, )))
