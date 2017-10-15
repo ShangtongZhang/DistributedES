@@ -194,6 +194,11 @@ if __name__ == '__main__':
     # fh.setLevel(logging.DEBUG)
     # gym.logger.addHandler(fh)
 
-    all_tasks()
+    # all_tasks()
     # train(config)
     # multi_runs(config)
+    config = BipedalWalkerHardcore()
+    config.max_steps = int(2e8)
+    config.sigma = 0.1
+    config.learning_rate = 1e-2
+    multi_runs(config)

@@ -181,4 +181,7 @@ if __name__ == '__main__':
     # gym.logger.addHandler(fh)
 
     # train(config)
-    all_tasks()
+    # all_tasks()
+    config = BipedalWalkerHardcore()
+    config.max_steps = int(2e8)
+    multi_runs(config)

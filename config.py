@@ -39,3 +39,10 @@ class ContinuousLunarLanderConfig(BasicConfig):
         self.action_clip = lambda a: np.clip(a, -1, 1)
         self.target = 10000
         BasicConfig.__init__(self)
+
+class BipedalWalkerHardcore(BasicConfig):
+    def __init__(self):
+        self.task = 'BipedalWalkerHardcore-v2'
+        self.action_clip = lambda a: np.clip(a, -1, 1)
+        self.target = 10000
+        BasicConfig.__init__(self)

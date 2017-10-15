@@ -229,6 +229,9 @@ if __name__ == '__main__':
     # fh.setLevel(logging.DEBUG)
     # gym.logger.addHandler(fh)
 
-    all_tasks()
+    # all_tasks()
     # multi_runs(config)
     # NEATAgent(config).run()
+    config = BipedalWalkerHardcore()
+    config.max_steps = int(2e8)
+    multi_runs(config)
