@@ -4,6 +4,7 @@
 Included algorithms:
 * Distributed CMA-ES
 * Distributed NES
+* Distributed NEAT
 
 # Dependency
 * PyTorch
