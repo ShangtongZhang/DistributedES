@@ -37,12 +37,6 @@ def train(config):
     result_queue = SimpleQueue()
     stop = mp.Value('i', False)
     stats = SharedStats(config.state_dim)
-    # if config.resume:
-    #     with open('data/resume/%s-%s-best_solution.bin' % (config.tag, config.task), 'rb') as f:
-    #         param = torch.FloatTensor(pickle.load(f))
-    #     with open('data/resume/%s-%s-saved_shifter.bin' % (config.tag, config.task), 'rb') as f:
-    #         stats.load_state_dict(pickle.load(f))
-    # else:
     param = torch.FloatTensor(torch.from_numpy(config.initial_weight))
     param.share_memory_()
     normalizers = [StaticNormalizer(config.state_dim) for _ in range(config.num_workers)]
@@ -63,8 +57,8 @@ def train(config):
         training_rewards.append(test_mean)
         training_steps.append(total_steps)
         training_timestamps.append(elapsed_time)
-        gym.logger.info('total steps %d, %f(%f), elapsed time %d' % 
-                        (total_steps, test_mean, test_ste, elapsed_time))
+        logger.info('Test: total steps %d, %f(%f), elapsed time %d' %
+            (total_steps, test_mean, test_ste, elapsed_time))
         
         for i in range(config.pop_size):
             task_queue.put(i)
@@ -80,15 +74,10 @@ def train(config):
             steps.append(step)
 
         total_steps += np.sum(steps)
-        # training_rewards.append(np.max(rewards))
-        # training_steps.append(total_steps)
-        # training_timestamps.append(elapsed_time)
-        # gym.logger.info('max rewards %f, total steps %d, elapsed time %f' %
-        #                 (np.max(rewards), total_steps, elapsed_time))
         r_mean = np.mean(rewards)
         r_std = np.std(rewards)
-        rewards = (rewards - r_mean) / r_std
-        gym.logger.info('iteration %d, %f(%f)' % (iteration, r_mean, r_std / np.sqrt(config.pop_size)))
+        # rewards = (rewards - r_mean) / r_std
+        logger.info('Train: iteration %d, %f(%f)' % (iteration, r_mean, r_std / np.sqrt(config.pop_size)))
         iteration += 1
         # if r_mean > config.target:
         if config.max_steps and total_steps > config.max_steps:
@@ -99,12 +88,10 @@ def train(config):
             normalizer.online_stats.zero()
         for normalizer in normalizers:
             normalizer.offline_stats.load(stats)
-        # with open('data/%s-%s-best_solution.bin' % (config.tag, config.task), 'wb') as f:
-        #     pickle.dump(param.numpy(), f)
-        # with open('data/%s-%s-saved_shifter.bin' % (config.tag, config.task), 'wb') as f:
-        #     pickle.dump(stats.state_dict(), f)
+        rewards = fitness_shift(rewards)
         gradient = np.asarray(epsilons) * np.asarray(rewards).reshape((-1, 1))
         gradient = np.mean(gradient, 0) / config.sigma
+        gradient = config.opt.update(gradient)
         gradient = torch.FloatTensor(gradient)
         param.add_(config.learning_rate * gradient)
 
@@ -125,15 +112,13 @@ def test(config, solution, stats):
 
 def multi_runs(config):
     fh = logging.FileHandler('log/NES-%s.txt' % config.task)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    fh.setFormatter(formatter)
     fh.setLevel(logging.DEBUG)
-    gym.logger.addHandler(fh)
+    logger.addHandler(fh)
 
     stats = []
     runs = 10
     for run in range(runs):
-        gym.logger.info('Run %d' % (run))
+        logger.info('Run %d' % (run))
         stats.append(train(config))
         with open('data/NES-stats-%s.bin' % (config.task), 'wb') as f:
             pickle.dump(stats, f)
@@ -192,12 +177,14 @@ if __name__ == '__main__':
     # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     # fh.setFormatter(formatter)
     # fh.setLevel(logging.DEBUG)
-    # gym.logger.addHandler(fh)
+    # logger.addHandler(fh)
 
     # all_tasks()
     # train(config)
     # multi_runs(config)
-    config = BipedalWalkerHardcore()
+    # config = BipedalWalkerHardcore()
+
+    config = PendulumConfig()
     config.max_steps = int(2e8)
     config.sigma = 0.1
     config.learning_rate = 1e-2

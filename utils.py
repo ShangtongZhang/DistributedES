@@ -1,5 +1,10 @@
 import numpy as np
 import torch
+import logging
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s: %(message)s')
+logger = logging.getLogger('MAIN')
+logger.setLevel(logging.DEBUG)
 
 class Normalizer:
     def __init__(self, filter_mean=True):
@@ -131,3 +136,30 @@ class Evaluator:
             total_reward += reward
             if done:
                 return total_reward, steps
+
+
+def fitness_shift(x):
+    x = np.asarray(x).flatten()
+    ranks = np.empty(len(x))
+    ranks[x.argsort()] = np.arange(len(x))
+    ranks /= (len(x) - 1)
+    ranks -= .5
+    return ranks
+
+class Adam:
+    def __init__(self, beta1=0.9, beta2=0.999, epsilon=1e-08):
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.beta1_t = self.beta2_t = 1
+        self.epsilon = epsilon
+        self.m = 0
+        self.v = 0
+
+    def update(self, g):
+        self.beta1_t *= self.beta1
+        self.beta2_t *= self.beta2
+        self.m = self.beta1 * self.m + (1 - self.beta1) * g
+        self.v = self.beta2 * self.v + (1 - self.beta2) * np.power(g, 2)
+        m_ = self.m / (1 - self.beta1_t)
+        v_ = self.v / (1 - self.beta2_t)
+        return m_ / (np.sqrt(v_) + self.epsilon)

@@ -1,5 +1,6 @@
 import gym
 from model import *
+from utils import *
 
 class BasicConfig:
     def __init__(self):
@@ -17,6 +18,7 @@ class BasicConfig:
         self.pop_size = 30
         self.num_workers = 6
         self.max_steps = 0
+        self.opt = Adam()
 
 class PendulumConfig(BasicConfig):
     def __init__(self):

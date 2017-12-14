@@ -146,8 +146,6 @@ def all_tasks():
         # cf.max_steps = int(1e10)
         cf.num_workers = 8
         cf.pop_size = 64
-        cf.sigma = 0.1
-        cf.learning_rate = 1e-2
         ps.append(mp.Process(target=multi_runs, args=(cf, )))
 
     for p in ps: p.start()
