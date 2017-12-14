@@ -5,7 +5,6 @@ import numpy as np
 from utils import *
 import pickle
 from config import *
-import logging
 import time
 
 class Worker(mp.Process):

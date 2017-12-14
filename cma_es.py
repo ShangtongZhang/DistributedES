@@ -8,7 +8,6 @@ import sys
 from model import *
 from utils import *
 from config import *
-import logging
 import time
 
 class Worker(mp.Process):
@@ -57,7 +56,7 @@ def train(config):
     training_steps = []
     training_timestamps = []
     test_mean, test_ste = test(config, config.initial_weight, stats)
-    gym.logger.info('total steps %d, %f(%f)' % (total_steps, test_mean, test_ste))
+    logger.info('total steps %d, %f(%f)' % (total_steps, test_mean, test_ste))
     training_rewards.append(test_mean)
     training_steps.append(0)
     training_timestamps.append(0)
@@ -78,8 +77,8 @@ def train(config):
         best_solution = solutions[np.argmin(cost)]
         elapsed_time = time.time() - initial_time
         test_mean, test_ste = test(config, best_solution, stats)
-        gym.logger.info('total steps %d, test %f(%f), best %f, elapased time %f' %
-                        (total_steps, test_mean, test_ste, np.argmin(cost), elapsed_time))
+        logger.info('total steps %d, test %f(%f), best %f, elapased time %f' %
+            (total_steps, test_mean, test_ste, np.argmin(cost), elapsed_time))
         training_rewards.append(test_mean)
         training_steps.append(total_steps)
         training_timestamps.append(elapsed_time)
@@ -88,6 +87,8 @@ def train(config):
         if config.max_steps and total_steps > config.max_steps:
             stop.value = True
             break
+
+        cost = fitness_shift(cost)
         es.tell(solutions, cost)
         # es.disp()
         for normalizer in normalizers:
@@ -113,15 +114,13 @@ def test(config, solution, stats):
 
 def multi_runs(config):
     fh = logging.FileHandler('log/CMA-%s.txt' % config.task)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    fh.setFormatter(formatter)
     fh.setLevel(logging.DEBUG)
-    gym.logger.addHandler(fh)
+    logger.addHandler(fh)
 
     stats = []
     runs = 10
     for run in range(runs):
-        gym.logger.info('Run %d' % (run))
+        logger.info('Run %d' % (run))
         stats.append(train(config))
         with open('data/CMA-stats-%s.bin' % (config.task), 'wb') as f:
             pickle.dump(stats, f)
@@ -176,10 +175,11 @@ if __name__ == '__main__':
     # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     # fh.setFormatter(formatter)
     # fh.setLevel(logging.DEBUG)
-    # gym.logger.addHandler(fh)
+    # logger.addHandler(fh)
 
     # train(config)
     # all_tasks()
-    config = BipedalWalkerHardcore()
+    # config = BipedalWalkerHardcore()
+    config = PendulumConfig()
     config.max_steps = int(2e8)
     multi_runs(config)

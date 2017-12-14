@@ -4,15 +4,11 @@ import math
 import os
 import pickle
 import neat
-from itertools import product
 from neat.reporting import *
-import logging
 import time
 import torch.multiprocessing as mp
 from utils import *
 from config import *
-from neat.six_util import iteritems
-import logging
 
 class GenomeEvaluator:
     def __init__(self, config, neat_config, state_normalizer):
@@ -138,8 +134,8 @@ class NEATAgent:
                 reward, _ = self.agent.test(best_genome)
                 self.fitness.append(reward)
                 # self.fitness.append(best_genome.fitness)
-                gym.logger.info('total steps %d, test %f, best %f, elapsed time %f' %
-                                (self.agent.total_steps, reward, best_genome.fitness, elapsed_time))
+                logger.info('total steps %d, test %f, best %f, elapsed time %f' %
+                    (self.agent.total_steps, reward, best_genome.fitness, elapsed_time))
                 # if best_genome.fitness > self.agent.config.target:
                 #     self.agent.stop.value = True
                 if self.agent.config.max_steps and self.agent.total_steps > self.agent.config.max_steps:
@@ -162,15 +158,13 @@ class NEATAgent:
 
 def multi_runs(config):
     fh = logging.FileHandler('log/NEAT-%s.txt' % config.task)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    fh.setFormatter(formatter)
     fh.setLevel(logging.DEBUG)
-    gym.logger.addHandler(fh)
+    logger.addHandler(fh)
 
     stats = []
     runs = 10
     for run in range(runs):
-        gym.logger.info('Run %d' % (run))
+        logger.info('Run %d' % (run))
         stats.append(NEATAgent(config).run())
         with open('data/NEAT-stats-%s.bin' % (config.task), 'wb') as f:
             pickle.dump(stats, f)
@@ -227,11 +221,12 @@ if __name__ == '__main__':
     # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     # fh.setFormatter(formatter)
     # fh.setLevel(logging.DEBUG)
-    # gym.logger.addHandler(fh)
+    # logger.addHandler(fh)
 
     # all_tasks()
     # multi_runs(config)
     # NEATAgent(config).run()
-    config = BipedalWalkerHardcore()
+    # config = BipedalWalkerHardcore()
+    config = PendulumConfig()
     config.max_steps = int(2e8)
     multi_runs(config)
