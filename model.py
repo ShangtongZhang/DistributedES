@@ -25,10 +25,8 @@ class BaseModel:
         assert offset == len(solution)
 
 class StandardFCNet(nn.Module, BaseModel):
-    def __init__(self, state_dim, action_dim):
+    def __init__(self, state_dim, action_dim, hidden_size):
         super(StandardFCNet, self).__init__()
-        hidden_size = 64
-
         self.fc1 = nn.Linear(state_dim, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, action_dim)

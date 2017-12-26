@@ -130,6 +130,7 @@ class Evaluator:
         while True:
             state = self.state_normalizer(state)
             action = self.model(np.stack([state])).data.numpy().flatten()
+            action += np.random.randn(len(action)) * self.config.action_noise_std
             action = self.config.action_clip(action)
             state, reward, done, info = self.env.step(action)
             steps += 1
