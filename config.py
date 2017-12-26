@@ -24,7 +24,7 @@ class BasicConfig:
         self.tag = ''
 
 class PendulumConfig(BasicConfig):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size=16):
         self.task = 'Pendulum-v0'
         self.action_clip = lambda a: np.clip(a, -2, 2)
         self.target = 10000
@@ -32,21 +32,21 @@ class PendulumConfig(BasicConfig):
 
 
 class BipedalWalkerConfig(BasicConfig):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size=16):
         self.task = 'BipedalWalker-v2'
         self.action_clip = lambda a: np.clip(a, -1, 1)
         self.target = 10000
         BasicConfig.__init__(self, hidden_size)
 
 class ContinuousLunarLanderConfig(BasicConfig):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size=16):
         self.task = 'LunarLanderContinuous-v2'
         self.action_clip = lambda a: np.clip(a, -1, 1)
         self.target = 10000
         BasicConfig.__init__(self, hidden_size)
 
 class BipedalWalkerHardcore(BasicConfig):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size=16):
         self.task = 'BipedalWalkerHardcore-v2'
         self.action_clip = lambda a: np.clip(a, -1, 1)
         self.target = 10000

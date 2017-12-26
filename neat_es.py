@@ -196,37 +196,4 @@ def all_tasks():
     for p in ps: p.join()
 
 if __name__ == '__main__':
-    # configs = []
-    #
-    # config = PendulumConfig()
-    # config.action_clip = lambda a: [2 * a[0]]
-    # config.max_steps = int(1e8)
-    # configs.append(config)
-    #
-    # config = BipedalWalkerConfig()
-    # config.max_steps = int(1e8)
-    # configs.append(config)
-    #
-    # config = ContinuousLunarLanderConfig()
-    # config.max_steps = int(2e7)
-    # configs.append(config)
-    #
-    # for config in configs:
-    #     config.max_steps = int(1e10)
-    #     config.num_workers = 8
-    #     config.pop_size = 64
-
-    # config = configs[0]
-    # fh = logging.FileHandler('log/NEAT-%s.txt' % config.task)
-    # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    # fh.setFormatter(formatter)
-    # fh.setLevel(logging.DEBUG)
-    # logger.addHandler(fh)
-
-    # all_tasks()
-    # multi_runs(config)
-    # NEATAgent(config).run()
-    # config = BipedalWalkerHardcore()
-    config = PendulumConfig()
-    config.max_steps = int(2e8)
-    multi_runs(config)
+    all_tasks()
